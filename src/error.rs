@@ -1,5 +1,5 @@
 use crate::{constants::MAX_PRECISION_U32, Decimal};
-use alloc::string::String;
+// use alloc::string::String;
 use core::fmt;
 
 /// Error type for the library.
@@ -8,8 +8,8 @@ pub enum Error {
     /// A generic error from Rust Decimal with the `String` containing more information as to what
     /// went wrong.
     ///
-    /// This is a legacy/deprecated error type retained for backwards compatibility.  
-    ErrorString(String),
+    /// This is a legacy/deprecated error type retained for backwards compatibility.
+    // ErrorString(String),
     /// The value provided exceeds `Decimal::MAX`.
     ExceedsMaximumPossibleValue,
     /// The value provided is less than `Decimal::MIN`.
@@ -18,33 +18,31 @@ pub enum Error {
     Underflow,
     /// The scale provided exceeds the maximum scale that `Decimal` can represent.
     ScaleExceedsMaximumPrecision(u32),
-    /// Represents a failure to convert to/from `Decimal` to the specified type. This is typically
-    /// due to type constraints (e.g. `Decimal::MAX` cannot be converted into `i32`).
-    ConversionTo(String),
+    // ConversionTo(String),
 }
 
-impl<S> From<S> for Error
-where
-    S: Into<String>,
-{
-    #[inline]
-    fn from(from: S) -> Self {
-        Self::ErrorString(from.into())
-    }
-}
+// impl<S> From<S> for Error
+// where
+//     S: Into<String>,
+// {
+//     #[inline]
+//     fn from(from: S) -> Self {
+//         Self::ErrorString(from.into())
+//     }
+// }
 
-#[cold]
-pub(crate) fn tail_error(from: &'static str) -> Result<Decimal, Error> {
-    Err(from.into())
-}
+// #[cold]
+// pub(crate) fn tail_error(from: &'static str) -> Result<Decimal, Error> {
+//     Err(from.into())
+// }
 
-#[cfg(feature = "std")]
-impl std::error::Error for Error {}
+// #[cfg(feature = "std")]
+// impl std::error::Error for Error {}
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) ->  fmt::Result {
         match *self {
-            Self::ErrorString(ref err) => f.pad(err),
+//             Self::ErrorString(ref err) => f.pad(err),
             Self::ExceedsMaximumPossibleValue => {
                 write!(f, "Number exceeds maximum value that can be represented.")
             }
@@ -60,9 +58,9 @@ impl fmt::Display for Error {
                     "Scale exceeds the maximum precision allowed: {scale} > {MAX_PRECISION_U32}"
                 )
             }
-            Self::ConversionTo(ref type_name) => {
-                write!(f, "Error while converting to {type_name}")
-            }
+//             Self::ConversionTo(ref type_name) => {
+//                 write!(f, "Error while converting to {type_name}")
+//             }
         }
     }
 }

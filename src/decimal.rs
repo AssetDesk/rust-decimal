@@ -579,63 +579,63 @@ impl Decimal {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn from_scientific(value: &str) -> Result<Decimal, Error> {
-        const ERROR_MESSAGE: &str = "Failed to parse";
+    // pub fn from_scientific(value: &str) -> Result<Decimal, Error> {
+    //     const ERROR_MESSAGE: &str = "Failed to parse";
 
-        let mut split = value.splitn(2, |c| c == 'e' || c == 'E');
+    //     let mut split = value.splitn(2, |c| c == 'e' || c == 'E');
 
-        let base = split.next().ok_or_else(|| Error::from(ERROR_MESSAGE))?;
-        let exp = split.next().ok_or_else(|| Error::from(ERROR_MESSAGE))?;
+    //     let base = split.next().ok_or_else(|| Error::Underflow)?;
+    //     let exp = split.next().ok_or_else(|| Error::Underflow)?;
 
-        let mut ret = Decimal::from_str(base)?;
-        let current_scale = ret.scale();
+    //     let mut ret = Decimal::from_str(base)?;
+    //     let current_scale = ret.scale();
 
-        if let Some(stripped) = exp.strip_prefix('-') {
-            let exp: u32 = stripped.parse().map_err(|_| Error::from(ERROR_MESSAGE))?;
-            ret.set_scale(current_scale + exp)?;
-        } else {
-            let exp: u32 = exp.parse().map_err(|_| Error::from(ERROR_MESSAGE))?;
-            if exp <= current_scale {
-                ret.set_scale(current_scale - exp)?;
-            } else if exp > 0 {
-                use crate::constants::BIG_POWERS_10;
+    //     if let Some(stripped) = exp.strip_prefix('-') {
+    //         let exp: u32 = stripped.parse().map_err(|_| Error::Underflow)?;
+    //         ret.set_scale(current_scale + exp)?;
+    //     } else {
+    //         let exp: u32 = exp.parse().map_err(|_| Error::Underflow)?;
+    //         if exp <= current_scale {
+    //             ret.set_scale(current_scale - exp)?;
+    //         } else if exp > 0 {
+    //             use crate::constants::BIG_POWERS_10;
 
-                // This is a case whereby the mantissa needs to be larger to be correctly
-                // represented within the decimal type. A good example is 1.2E10. At this point,
-                // we've parsed 1.2 as the base and 10 as the exponent. To represent this within a
-                // Decimal type we effectively store the mantissa as 12,000,000,000 and scale as
-                // zero.
-                if exp > MAX_PRECISION_U32 {
-                    return Err(Error::ScaleExceedsMaximumPrecision(exp));
-                }
-                let mut exp = exp as usize;
-                // Max two iterations. If exp is 1 then it needs to index position 0 of the array.
-                while exp > 0 {
-                    let pow;
-                    if exp >= BIG_POWERS_10.len() {
-                        pow = BIG_POWERS_10[BIG_POWERS_10.len() - 1];
-                        exp -= BIG_POWERS_10.len();
-                    } else {
-                        pow = BIG_POWERS_10[exp - 1];
-                        exp = 0;
-                    }
+    //             // This is a case whereby the mantissa needs to be larger to be correctly
+    //             // represented within the decimal type. A good example is 1.2E10. At this point,
+    //             // we've parsed 1.2 as the base and 10 as the exponent. To represent this within a
+    //             // Decimal type we effectively store the mantissa as 12,000,000,000 and scale as
+    //             // zero.
+    //             if exp > MAX_PRECISION_U32 {
+    //                 return Err(Error::ScaleExceedsMaximumPrecision(exp));
+    //             }
+    //             let mut exp = exp as usize;
+    //             // Max two iterations. If exp is 1 then it needs to index position 0 of the array.
+    //             while exp > 0 {
+    //                 let pow;
+    //                 if exp >= BIG_POWERS_10.len() {
+    //                     pow = BIG_POWERS_10[BIG_POWERS_10.len() - 1];
+    //                     exp -= BIG_POWERS_10.len();
+    //                 } else {
+    //                     pow = BIG_POWERS_10[exp - 1];
+    //                     exp = 0;
+    //                 }
 
-                    let pow = Decimal {
-                        flags: 0,
-                        lo: pow as u32,
-                        mid: (pow >> 32) as u32,
-                        hi: 0,
-                    };
-                    match ret.checked_mul(pow) {
-                        Some(r) => ret = r,
-                        None => return Err(Error::ExceedsMaximumPossibleValue),
-                    };
-                }
-                ret.normalize_assign();
-            }
-        }
-        Ok(ret)
-    }
+    //                 let pow = Decimal {
+    //                     flags: 0,
+    //                     lo: pow as u32,
+    //                     mid: (pow >> 32) as u32,
+    //                     hi: 0,
+    //                 };
+    //                 match ret.checked_mul(pow) {
+    //                     Some(r) => ret = r,
+    //                     None => return Err(Error::ExceedsMaximumPossibleValue),
+    //                 };
+    //             }
+    //             ret.normalize_assign();
+    //         }
+    //     }
+    //     Ok(ret)
+    // }
 
     /// Converts a string slice in a given base to a decimal.
     ///
@@ -659,13 +659,13 @@ impl Decimal {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn from_str_radix(str: &str, radix: u32) -> Result<Self, crate::Error> {
-        if radix == 10 {
-            crate::str::parse_str_radix_10(str)
-        } else {
-            crate::str::parse_str_radix_n(str, radix)
-        }
-    }
+    // pub fn from_str_radix(str: &str, radix: u32) -> Result<Self, crate::Error> {
+    //     if radix == 10 {
+    //         crate::str::parse_str_radix_10(str)
+    //     } else {
+    //         crate::str::parse_str_radix_n(str, radix)
+    //     }
+    // }
 
     /// Parses a string slice into a decimal. If the value underflows and cannot be represented with the
     /// given scale then this will return an error.
@@ -685,9 +685,9 @@ impl Decimal {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn from_str_exact(str: &str) -> Result<Self, crate::Error> {
-        crate::str::parse_str_radix_10_exact(str)
-    }
+    // pub fn from_str_exact(str: &str) -> Result<Self, crate::Error> {
+    //     crate::str::parse_str_radix_10_exact(str)
+    // }
 
     /// Returns the scale of the decimal number, otherwise known as `e`.
     ///
@@ -1806,7 +1806,7 @@ macro_rules! impl_try_from_decimal {
 
             #[inline]
             fn try_from(t: Decimal) -> Result<Self, Error> {
-                $conversion_fn(&t).ok_or_else(|| Error::ConversionTo(stringify!($TInto).into()))
+                $conversion_fn(&t).ok_or_else(|| Error::Underflow)
             }
         }
     };
@@ -1829,28 +1829,28 @@ impl_try_from_decimal!(u128, Decimal::to_u128, integer_docs!(true));
 
 // #[doc] attributes are formatted poorly with rustfmt so skip for now.
 // See https://github.com/rust-lang/rustfmt/issues/5062 for more information.
-#[rustfmt::skip]
-macro_rules! impl_try_from_primitive {
-    ($TFrom:ty, $conversion_fn:path $(, $err:expr)?) => {
-        #[doc = concat!(
-            "Try to convert a `",
-            stringify!($TFrom),
-            "` into a `Decimal`.\n\nCan fail if the value is out of range for `Decimal`."
-        )]
-        impl TryFrom<$TFrom> for Decimal {
-            type Error = crate::Error;
+// #[rustfmt::skip]
+// macro_rules! impl_try_from_primitive {
+//     ($TFrom:ty, $conversion_fn:path $(, $err:expr)?) => {
+//         #[doc = concat!(
+//             "Try to convert a `",
+//             stringify!($TFrom),
+//             "` into a `Decimal`.\n\nCan fail if the value is out of range for `Decimal`."
+//         )]
+//         impl TryFrom<$TFrom> for Decimal {
+//             type Error = crate::Error;
 
-            #[inline]
-            fn try_from(t: $TFrom) -> Result<Self, Error> {
-                $conversion_fn(t) $( .ok_or_else(|| $err) )?
-            }
-        }
-    };
-}
+//             #[inline]
+//             fn try_from(t: $TFrom) -> Result<Self, Error> {
+//                 $conversion_fn(t) $( .ok_or_else(|| $err) )?
+//             }
+//         }
+//     };
+// }
 
-impl_try_from_primitive!(f32, Self::from_f32, Error::ConversionTo("Decimal".into()));
-impl_try_from_primitive!(f64, Self::from_f64, Error::ConversionTo("Decimal".into()));
-impl_try_from_primitive!(&str, core::str::FromStr::from_str);
+// impl_try_from_primitive!(f32, Self::from_f32, Error::Underflow);
+// impl_try_from_primitive!(f64, Self::from_f64, Error::Underflow);
+// impl_try_from_primitive!(&str, core::str::FromStr::from_str);
 
 macro_rules! impl_from {
     ($T:ty, $from_ty:path) => {
@@ -1938,13 +1938,13 @@ impl Num for Decimal {
     }
 }
 
-impl FromStr for Decimal {
-    type Err = Error;
+// impl FromStr for Decimal {
+//     type Err = Error;
 
-    fn from_str(value: &str) -> Result<Decimal, Self::Err> {
-        crate::str::parse_str_radix_10(value)
-    }
-}
+//     fn from_str(value: &str) -> Result<Decimal, Self::Err> {
+//         crate::str::parse_str_radix_10(value)
+//     }
+// }
 
 impl FromPrimitive for Decimal {
     fn from_i32(n: i32) -> Option<Decimal> {
@@ -2375,8 +2375,8 @@ impl fmt::Display for Decimal {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let (rep, additional) = crate::str::to_str_internal(self, false, f.precision());
         if let Some(additional) = additional {
-            let value = [rep.as_str(), "0".repeat(additional).as_str()].concat();
-            f.pad_integral(self.is_sign_positive(), "", value.as_str())
+            let value = "0";
+            f.pad_integral(self.is_sign_positive(), "", value)
         } else {
             f.pad_integral(self.is_sign_positive(), "", rep.as_str())
         }
@@ -2389,17 +2389,17 @@ impl fmt::Debug for Decimal {
     }
 }
 
-impl fmt::LowerExp for Decimal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        crate::str::fmt_scientific_notation(self, "e", f)
-    }
-}
+// impl fmt::LowerExp for Decimal {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         crate::str::fmt_scientific_notation(self, "e", f)
+//     }
+// }
 
-impl fmt::UpperExp for Decimal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        crate::str::fmt_scientific_notation(self, "E", f)
-    }
-}
+// impl fmt::UpperExp for Decimal {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         crate::str::fmt_scientific_notation(self, "E", f)
+//     }
+// }
 
 impl Neg for Decimal {
     type Output = Decimal;

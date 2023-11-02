@@ -1,13 +1,13 @@
 use crate::{
     constants::{BYTES_TO_OVERFLOW_U64, MAX_PRECISION, MAX_STR_BUFFER_SIZE, OVERFLOW_U96, WILL_OVERFLOW_U64},
-    error::{tail_error, Error},
+    error::Error,
     ops::array::{add_by_internal_flattened, add_one_internal, div_by_u32, is_all_zero, mul_by_u32},
     Decimal,
 };
 
 use arrayvec::{ArrayString, ArrayVec};
 
-use alloc::{string::String, vec::Vec};
+// use alloc::{string::String, string::ToString, vec::Vec};
 use core::fmt;
 
 // impl that doesn't allocate for serialization purposes.
@@ -76,112 +76,112 @@ pub(crate) fn to_str_internal(
     (rep, additional)
 }
 
-pub(crate) fn fmt_scientific_notation(
-    value: &Decimal,
-    exponent_symbol: &str,
-    f: &mut fmt::Formatter<'_>,
-) -> fmt::Result {
-    #[cfg(not(feature = "std"))]
-    use alloc::string::ToString;
+// pub(crate) fn fmt_scientific_notation(
+//     value: &Decimal,
+//     exponent_symbol: &str,
+//     f: &mut fmt::Formatter<'_>,
+// ) -> fmt::Result {
+//     #[cfg(not(feature = "std"))]
+//     // use alloc::string::ToString;
 
-    // Get the scale - this is the e value. With multiples of 10 this may get bigger.
-    let mut exponent = -(value.scale() as isize);
+//     // Get the scale - this is the e value. With multiples of 10 this may get bigger.
+//     let mut exponent = -(value.scale() as isize);
 
-    // Convert the integral to a string
-    let mut chars = Vec::new();
-    let mut working = value.mantissa_array3();
-    while !is_all_zero(&working) {
-        let remainder = div_by_u32(&mut working, 10u32);
-        chars.push(char::from(b'0' + remainder as u8));
-    }
+//     // Convert the integral to a string
+//     let mut chars = Vec::new();
+//     let mut working = value.mantissa_array3();
+//     while !is_all_zero(&working) {
+//         let remainder = div_by_u32(&mut working, 10u32);
+//         chars.push(char::from(b'0' + remainder as u8));
+//     }
 
-    // First of all, apply scientific notation rules. That is:
-    //  1. If non-zero digit comes first, move decimal point left so that e is a positive integer
-    //  2. If decimal point comes first, move decimal point right until after the first non-zero digit
-    // Since decimal notation naturally lends itself this way, we just need to inject the decimal
-    // point in the right place and adjust the exponent accordingly.
+//     // First of all, apply scientific notation rules. That is:
+//     //  1. If non-zero digit comes first, move decimal point left so that e is a positive integer
+//     //  2. If decimal point comes first, move decimal point right until after the first non-zero digit
+//     // Since decimal notation naturally lends itself this way, we just need to inject the decimal
+//     // point in the right place and adjust the exponent accordingly.
 
-    let len = chars.len();
-    let mut rep;
-    // We either are operating with a precision specified, or on defaults. Defaults will perform "smart"
-    // reduction of precision.
-    if let Some(precision) = f.precision() {
-        if len > 1 {
-            // If we're zero precision AND it's trailing zeros then strip them
-            if precision == 0 && chars.iter().take(len - 1).all(|c| *c == '0') {
-                rep = chars.iter().skip(len - 1).collect::<String>();
-            } else {
-                // We may still be zero precision, however we aren't trailing zeros
-                if precision > 0 {
-                    chars.insert(len - 1, '.');
-                }
-                rep = chars
-                    .iter()
-                    .rev()
-                    // Add on extra zeros according to the precision. At least one, since we added a decimal place.
-                    .chain(core::iter::repeat(&'0'))
-                    .take(if precision == 0 { 1 } else { 2 + precision })
-                    .collect::<String>();
-            }
-            exponent += (len - 1) as isize;
-        } else if precision > 0 {
-            // We have precision that we want to add
-            chars.push('.');
-            rep = chars
-                .iter()
-                .chain(core::iter::repeat(&'0'))
-                .take(2 + precision)
-                .collect::<String>();
-        } else {
-            rep = chars.iter().collect::<String>();
-        }
-    } else if len > 1 {
-        // If the number is just trailing zeros then we treat it like 0 precision
-        if chars.iter().take(len - 1).all(|c| *c == '0') {
-            rep = chars.iter().skip(len - 1).collect::<String>();
-        } else {
-            // Otherwise, we need to insert a decimal place and make it a scientific number
-            chars.insert(len - 1, '.');
-            rep = chars.iter().rev().collect::<String>();
-        }
-        exponent += (len - 1) as isize;
-    } else {
-        rep = chars.iter().collect::<String>();
-    }
+//     let len = chars.len();
+//     let mut rep;
+//     // We either are operating with a precision specified, or on defaults. Defaults will perform "smart"
+//     // reduction of precision.
+//     if let Some(precision) = f.precision() {
+//         if len > 1 {
+//             // If we're zero precision AND it's trailing zeros then strip them
+//             if precision == 0 && chars.iter().take(len - 1).all(|c| *c == '0') {
+//                 rep = chars.iter().skip(len - 1).collect::<String>();
+//             } else {
+//                 // We may still be zero precision, however we aren't trailing zeros
+//                 if precision > 0 {
+//                     chars.insert(len - 1, '.');
+//                 }
+//                 rep = chars
+//                     .iter()
+//                     .rev()
+//                     // Add on extra zeros according to the precision. At least one, since we added a decimal place.
+//                     .chain(core::iter::repeat(&'0'))
+//                     .take(if precision == 0 { 1 } else { 2 + precision })
+//                     .collect::<String>();
+//             }
+//             exponent += (len - 1) as isize;
+//         } else if precision > 0 {
+//             // We have precision that we want to add
+//             chars.push('.');
+//             rep = chars
+//                 .iter()
+//                 .chain(core::iter::repeat(&'0'))
+//                 .take(2 + precision)
+//                 .collect::<String>();
+//         } else {
+//             rep = chars.iter().collect::<String>();
+//         }
+//     } else if len > 1 {
+//         // If the number is just trailing zeros then we treat it like 0 precision
+//         if chars.iter().take(len - 1).all(|c| *c == '0') {
+//             rep = chars.iter().skip(len - 1).collect::<String>();
+//         } else {
+//             // Otherwise, we need to insert a decimal place and make it a scientific number
+//             chars.insert(len - 1, '.');
+//             rep = chars.iter().rev().collect::<String>();
+//         }
+//         exponent += (len - 1) as isize;
+//     } else {
+//         rep = chars.iter().collect::<String>();
+//     }
 
-    rep.push_str(exponent_symbol);
-    rep.push_str(&exponent.to_string());
-    f.pad_integral(value.is_sign_positive(), "", &rep)
-}
+//     rep.push_str(exponent_symbol);
+//     rep.push_str(&exponent.to_string());
+//     f.pad_integral(value.is_sign_positive(), "", &rep)
+// }
 
 // dedicated implementation for the most common case.
-#[inline]
-pub(crate) fn parse_str_radix_10(str: &str) -> Result<Decimal, Error> {
-    let bytes = str.as_bytes();
-    if bytes.len() < BYTES_TO_OVERFLOW_U64 {
-        parse_str_radix_10_dispatch::<false, true>(bytes)
-    } else {
-        parse_str_radix_10_dispatch::<true, true>(bytes)
-    }
-}
+// #[inline]
+// pub(crate) fn parse_str_radix_10(str: &str) -> Result<Decimal, Error> {
+//     let bytes = str.as_bytes();
+//     if bytes.len() < BYTES_TO_OVERFLOW_U64 {
+//         parse_str_radix_10_dispatch::<false, true>(bytes)
+//     } else {
+//         parse_str_radix_10_dispatch::<true, true>(bytes)
+//     }
+// }
 
-#[inline]
-pub(crate) fn parse_str_radix_10_exact(str: &str) -> Result<Decimal, Error> {
-    let bytes = str.as_bytes();
-    if bytes.len() < BYTES_TO_OVERFLOW_U64 {
-        parse_str_radix_10_dispatch::<false, false>(bytes)
-    } else {
-        parse_str_radix_10_dispatch::<true, false>(bytes)
-    }
-}
+// #[inline]
+// pub(crate) fn parse_str_radix_10_exact(str: &str) -> Result<Decimal, Error> {
+//     let bytes = str.as_bytes();
+//     if bytes.len() < BYTES_TO_OVERFLOW_U64 {
+//         parse_str_radix_10_dispatch::<false, false>(bytes)
+//     } else {
+//         parse_str_radix_10_dispatch::<true, false>(bytes)
+//     }
+// }
 
-#[inline]
-fn parse_str_radix_10_dispatch<const BIG: bool, const ROUND: bool>(bytes: &[u8]) -> Result<Decimal, Error> {
-    match bytes {
-        [b, rest @ ..] => byte_dispatch_u64::<false, false, false, BIG, true, ROUND>(rest, 0, 0, *b),
-        [] => tail_error("Invalid decimal: empty"),
-    }
-}
+// #[inline]
+// fn parse_str_radix_10_dispatch<const BIG: bool, const ROUND: bool>(bytes: &[u8]) -> Result<Decimal, Error> {
+//     match bytes {
+//         [b, rest @ ..] => byte_dispatch_u64::<false, false, false, BIG, true, ROUND>(rest, 0, 0, *b),
+//         [] => tail_error("Invalid decimal: empty"),
+//     }
+// }
 
 #[inline]
 fn overflow_64(val: u64) -> bool {
@@ -231,7 +231,7 @@ fn non_digit_dispatch_u64<
         b'-' if FIRST && !HAS => dispatch_next::<false, true, false, BIG, ROUND>(bytes, data64, scale),
         b'+' if FIRST && !HAS => dispatch_next::<false, false, false, BIG, ROUND>(bytes, data64, scale),
         b'_' if HAS => handle_separator::<POINT, NEG, BIG, ROUND>(bytes, data64, scale),
-        b => tail_invalid_digit(b),
+        _  => dispatch_next::<false, true, false, BIG, ROUND>(bytes, data64, scale),
     }
 }
 
@@ -305,15 +305,15 @@ fn handle_separator<const POINT: bool, const NEG: bool, const BIG: bool, const R
     dispatch_next::<POINT, NEG, true, BIG, ROUND>(bytes, data64, scale)
 }
 
-#[inline(never)]
-#[cold]
-fn tail_invalid_digit(digit: u8) -> Result<Decimal, Error> {
-    match digit {
-        b'.' => tail_error("Invalid decimal: two decimal points"),
-        b'_' => tail_error("Invalid decimal: must start lead with a number"),
-        _ => tail_error("Invalid decimal: unknown character"),
-    }
-}
+// #[inline(never)]
+// #[cold]
+// fn tail_invalid_digit(digit: u8) -> Result<Decimal, Error> {
+//     match digit {
+//         b'.' => tail_error("Invalid decimal: two decimal points"),
+//         b'_' => tail_error("Invalid decimal: must start lead with a number"),
+//         _ => tail_error("Invalid decimal: unknown character"),
+//     }
+// }
 
 #[inline(never)]
 #[cold]
@@ -331,9 +331,9 @@ fn handle_full_128<const POINT: bool, const NEG: bool, const ROUND: bool>(
             // If the data is going to overflow then we should go into recovery mode
             let next = (data * 10) + digit as u128;
             if overflow_128(next) {
-                if !POINT {
-                    return tail_error("Invalid decimal: overflow from too many digits");
-                }
+                // if !POINT {
+                //     return tail_error("Invalid decimal: overflow from too many digits");
+                // }
 
                 if ROUND {
                     maybe_round(data, next_byte, scale, POINT, NEG)
@@ -374,7 +374,7 @@ fn handle_full_128<const POINT: bool, const NEG: bool, const ROUND: bool>(
                 handle_data::<NEG, true>(data, scale)
             }
         }
-        b => tail_invalid_digit(b),
+        b => handle_data::<NEG, true>(data, scale),// tail_invalid_digit(b),
     }
 }
 
@@ -391,7 +391,7 @@ fn maybe_round(
         b'0'..=b'9' => u32::from(next_byte - b'0'),
         b'_' => 0, // this should be an invalid string?
         b'.' if point => 0,
-        b => return tail_invalid_digit(b),
+        b => 0 // return tail_invalid_digit(b),
     };
 
     // Round at midpoint
@@ -401,9 +401,9 @@ fn maybe_round(
         // If the mantissa is now overflowing, round to the next
         // next least significant digit and discard precision
         if overflow_128(data) {
-            if scale == 0 {
-                return tail_error("Invalid decimal: overflow from mantissa after rounding");
-            }
+            // if scale == 0 {
+            //     return tail_error("Invalid decimal: overflow from mantissa after rounding");
+            // }
             data += 4;
             data /= 10;
             scale -= 1;
@@ -417,17 +417,17 @@ fn maybe_round(
     }
 }
 
-#[inline(never)]
-fn tail_no_has() -> Result<Decimal, Error> {
-    tail_error("Invalid decimal: no digits found")
-}
+// #[inline(never)]
+// fn tail_no_has() -> Result<Decimal, Error> {
+//     tail_error("Invalid decimal: no digits found")
+// }
 
 #[inline]
 fn handle_data<const NEG: bool, const HAS: bool>(data: u128, scale: u8) -> Result<Decimal, Error> {
     debug_assert_eq!(data >> 96, 0);
-    if !HAS {
-        tail_no_has()
-    } else {
+    // if !HAS {
+    //     tail_no_has()
+    // } else {
         Ok(Decimal::from_parts(
             data as u32,
             (data >> 32) as u32,
@@ -435,20 +435,20 @@ fn handle_data<const NEG: bool, const HAS: bool>(data: u128, scale: u8) -> Resul
             NEG,
             scale as u32,
         ))
-    }
+    // }
 }
 
 pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error> {
-    if str.is_empty() {
-        return Err(Error::from("Invalid decimal: empty"));
-    }
-    if radix < 2 {
-        return Err(Error::from("Unsupported radix < 2"));
-    }
-    if radix > 36 {
-        // As per trait documentation
-        return Err(Error::from("Unsupported radix > 36"));
-    }
+    // if str.is_empty() {
+    //     return Err(Error::from("Invalid decimal: empty"));
+    // }
+    // if radix < 2 {
+    //     return Err(Error::from("Unsupported radix < 2"));
+    // }
+    // if radix > 36 {
+    //     // As per trait documentation
+    //     return Err(Error::from("Unsupported radix > 36"));
+    // }
 
     let mut offset = 0;
     let mut len = str.len();
@@ -517,7 +517,7 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
         34 => 19,
         35 => 19,
         36 => 19,
-        _ => return Err(Error::from("Unsupported radix")),
+        _ => 0, // return Err(Error::from("Unsupported radix")),
     };
 
     let mut maybe_round = false;
@@ -525,9 +525,9 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
         let b = bytes[offset];
         match b {
             b'0'..=b'9' => {
-                if b > max_n {
-                    return Err(Error::from("Invalid decimal: invalid character"));
-                }
+                // if b > max_n {
+                //     return Err(Error::from("Invalid decimal: invalid character"));
+                // }
                 coeff.push(u32::from(b - b'0'));
                 offset += 1;
                 len -= 1;
@@ -539,9 +539,9 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
                 }
             }
             b'a'..=b'z' => {
-                if b > max_alpha_lower {
-                    return Err(Error::from("Invalid decimal: invalid character"));
-                }
+                // if b > max_alpha_lower {
+                //     return Err(Error::from("Invalid decimal: invalid character"));
+                // }
                 coeff.push(u32::from(b - b'a') + 10);
                 offset += 1;
                 len -= 1;
@@ -552,9 +552,9 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
                 }
             }
             b'A'..=b'Z' => {
-                if b > max_alpha_upper {
-                    return Err(Error::from("Invalid decimal: invalid character"));
-                }
+                // if b > max_alpha_upper {
+                //     return Err(Error::from("Invalid decimal: invalid character"));
+                // }
                 coeff.push(u32::from(b - b'A') + 10);
                 offset += 1;
                 len -= 1;
@@ -565,22 +565,22 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
                 }
             }
             b'.' => {
-                if digits_before_dot >= 0 {
-                    return Err(Error::from("Invalid decimal: two decimal points"));
-                }
+                // if digits_before_dot >= 0 {
+                //     return Err(Error::from("Invalid decimal: two decimal points"));
+                // }
                 digits_before_dot = coeff.len() as i32;
                 offset += 1;
                 len -= 1;
             }
             b'_' => {
                 // Must start with a number...
-                if coeff.is_empty() {
-                    return Err(Error::from("Invalid decimal: must start lead with a number"));
-                }
+                // if coeff.is_empty() {
+                //     return Err(Error::from("Invalid decimal: must start lead with a number"));
+                // }
                 offset += 1;
                 len -= 1;
             }
-            _ => return Err(Error::from("Invalid decimal: unknown character")),
+            _ => (), // Err(Error::from("Invalid decimal: unknown character")),
         }
     }
 
@@ -589,32 +589,32 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
         let next_byte = bytes[offset];
         let digit = match next_byte {
             b'0'..=b'9' => {
-                if next_byte > max_n {
-                    return Err(Error::from("Invalid decimal: invalid character"));
-                }
+                // if next_byte > max_n {
+                //     return Err(Error::from("Invalid decimal: invalid character"));
+                // }
                 u32::from(next_byte - b'0')
             }
             b'a'..=b'z' => {
-                if next_byte > max_alpha_lower {
-                    return Err(Error::from("Invalid decimal: invalid character"));
-                }
+                // if next_byte > max_alpha_lower {
+                //     return Err(Error::from("Invalid decimal: invalid character"));
+                // }
                 u32::from(next_byte - b'a') + 10
             }
             b'A'..=b'Z' => {
-                if next_byte > max_alpha_upper {
-                    return Err(Error::from("Invalid decimal: invalid character"));
-                }
+                // if next_byte > max_alpha_upper {
+                //     return Err(Error::from("Invalid decimal: invalid character"));
+                // }
                 u32::from(next_byte - b'A') + 10
             }
             b'_' => 0,
             b'.' => {
                 // Still an error if we have a second dp
-                if digits_before_dot >= 0 {
-                    return Err(Error::from("Invalid decimal: two decimal points"));
-                }
+                // if digits_before_dot >= 0 {
+                //     return Err(Error::from("Invalid decimal: two decimal points"));
+                // }
                 0
             }
-            _ => return Err(Error::from("Invalid decimal: unknown character")),
+            _ => 0, // return Err(Error::from("Invalid decimal: unknown character")),
         };
 
         // Round at midpoint
@@ -641,9 +641,9 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
     }
 
     // here when no characters left
-    if coeff.is_empty() {
-        return Err(Error::from("Invalid decimal: no digits found"));
-    }
+    // if coeff.is_empty() {
+    //     return Err(Error::from("Invalid decimal: no digits found"));
+    // }
 
     let mut scale = if digits_before_dot >= 0 {
         // we had a decimal place so set the scale
@@ -666,22 +666,22 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
             // This means that we have more data to process, that we're not sure what to do with.
             // This may or may not be an issue - depending on whether we're past a decimal point
             // or not.
-            if (i as i32) < digits_before_dot && i + 1 < len {
-                return Err(Error::from("Invalid decimal: overflow from too many digits"));
-            }
+            // if (i as i32) < digits_before_dot && i + 1 < len {
+            //     return Err(Error::from("Invalid decimal: overflow from too many digits"));
+            // }
 
             if *digit >= 5 {
                 let carry = add_one_internal(&mut data);
-                if carry > 0 {
-                    // Highly unlikely scenario which is more indicative of a bug
-                    return Err(Error::from("Invalid decimal: overflow when rounding"));
-                }
+                // if carry > 0 {
+                //     // Highly unlikely scenario which is more indicative of a bug
+                //     return Err(Error::from("Invalid decimal: overflow when rounding"));
+                // }
             }
             // We're also one less digit so reduce the scale
             let diff = (len - i) as u32;
-            if diff > scale {
-                return Err(Error::from("Invalid decimal: overflow from scale mismatch"));
-            }
+            // if diff > scale {
+            //     return Err(Error::from("Invalid decimal: overflow from scale mismatch"));
+            // }
             scale -= diff;
             break;
         } else {
@@ -689,10 +689,10 @@ pub(crate) fn parse_str_radix_n(str: &str, radix: u32) -> Result<Decimal, Error>
             data[1] = tmp[1];
             data[2] = tmp[2];
             let carry = add_by_internal_flattened(&mut data, *digit);
-            if carry > 0 {
-                // Highly unlikely scenario which is more indicative of a bug
-                return Err(Error::from("Invalid decimal: overflow from carry"));
-            }
+            // if carry > 0 {
+            //     // Highly unlikely scenario which is more indicative of a bug
+            //     return Err(Error::from("Invalid decimal: overflow from carry"));
+            // }
         }
     }
 

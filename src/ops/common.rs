@@ -154,7 +154,8 @@ impl Buf12 {
 
 // This is a table of the largest values that will not overflow when multiplied
 // by a given power as represented by the index.
-static POWER_OVERFLOW_VALUES: [Buf12; 8] = [
+// static
+const POWER_OVERFLOW_VALUES: [Buf12; 8] = [
     Buf12 {
         data: [2576980377, 2576980377, 429496729],
     },

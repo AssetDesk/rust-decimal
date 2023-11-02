@@ -148,7 +148,8 @@ mod test {
         "postgres://postgres@localhost".to_string()
     }
 
-    pub static TEST_DECIMALS: &[(u32, u32, &str, &str)] = &[
+    // static
+    pub const TEST_DECIMALS: &[(u32, u32, &str, &str)] = &[
         // precision, scale, sent, expected
         (35, 6, "3950.123456", "3950.123456"),
         (35, 2, "3950.123456", "3950.12"),

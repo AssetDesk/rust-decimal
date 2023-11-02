@@ -1,8 +1,9 @@
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/README-lib.md"))]
 #![forbid(unsafe_code)]
 #![deny(clippy::print_stdout, clippy::print_stderr)]
-#![cfg_attr(not(feature = "std"), no_std)]
-extern crate alloc;
+// #![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+// extern crate alloc;
 
 mod constants;
 mod decimal;
